@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Path to Polygon (JSON) Converter</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            margin-top: 20px;
+            background-color: cornflowerblue;
+            font-family: Arial, sans-serif;
+        }
+
+        #container {
+            text-align: center;
+        }
+
+        #output {
+            white-space: pre-line;
+        }
+
+        #copyButton {
+            margin-top: 10px;
+        }
+
+        #jsonOutput {
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            border: 2px solid black;
+            border-radius: 10px;
+        }
+
+        #container {
+            background-color: #f0f0f0;
+            margin: 20px 20px 20px 20px;
+            padding: 0 30px 0 30px;
+        }
+
+        button {
+            border: 2px solid black;
+            background-color: #FFFFFF;
+            border-radius: 10px;
+            padding: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(2px);
+            box-shadow: none;
+        }
+
+        button:focus {
+            outline: none;
+        }
+
+        #copyButton {
+            margin-top: 20px;
+        }
+
+        .sig {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <h2>Path to Polygon (JSON) Converter</h2>
+    <form id="pathForm">
+        <label for="svgPath">Enter SVG Path:</label><br><br>
+        <textarea id="svgPath" rows="20" cols="75" placeholder="Add your SVG path in here. Do not include curve ('c'). "></textarea><br><br>
+        <button type="button" onclick="convertPath()">Convert</button>
+    </form>
+
+    <h3>Polygon Output:</h3>
+    <div id="output"></div>
+    <br>
+    <br>
+    <h3>JSON format</h3>
+    <div id="jsonOutput"></div>
+    <button id="copyButton" onclick="copyJson()">Copy JSON</button>
+
+    <div class="sig">
+        &copy; Paul Clarke
+    </div>
+</div>
+
+<script>
+    function convertPath() {
+        const svgPath = document.getElementById("svgPath").value;
+
+        const commands = svgPath.match(/[a-zA-Z][^a-zA-Z]*/g);
+
+        let polygonPoints = [];
+        let currentX = 0;
+        let currentY = 0;
+
+        for (let i = 0; i < commands.length; i++) {
+            const command = commands[i];
+            const cmd = command.charAt(0).toUpperCase();
+            const values = command.substr(1).trim().split(/[,\s]+/);
+
+            if (cmd === 'M') {
+                currentX = parseFloat(values[0]);
+                currentY = parseFloat(values[1]);
+                polygonPoints.push([currentX, currentY]);
+            } else if (cmd === 'V') {
+                const newY = currentY + parseFloat(values[0]);
+                polygonPoints.push([currentX, newY]);
+                currentY = newY;
+            } else if (cmd === 'H') {
+                const newX = currentX + parseFloat(values[0]);
+                polygonPoints.push([newX, currentY]);
+                currentX = newX;
+            } else if (cmd === 'L') {
+                for (let j = 0; j < values.length; j += 2) {
+                    const newX = currentX + parseFloat(values[j]);
+                    const newY = currentY + parseFloat(values[j + 1]);
+                    polygonPoints.push([newX, newY]);
+                    currentX = newX;
+                    currentY = newY;
+                }
+            } else if (cmd === 'Z') {
+                polygonPoints.push(polygonPoints[0]);
+                currentX = polygonPoints[0][0];
+                currentY = polygonPoints[0][1];
+            }
+        }
+
+        const polygonStr = polygonPoints.map(point => point.map(coord => Math.round(coord)).join(' ')).join(', ');
+
+        const polygon = `POLYGON((${polygonStr}))`;
+
+        const outputDiv = document.getElementById("output");
+        outputDiv.textContent = polygon;
+
+        const jsonOutputDiv = document.getElementById("jsonOutput");
+        const jsonPoints = polygonPoints.map(point => `[${Math.round(point[0])}, ${Math.round(point[1])}]`);
+        jsonOutputDiv.textContent = `[${jsonPoints.join(", ")}]`;
+    }
+
+    function copyJson() {
+        const jsonOutputDiv = document.getElementById("jsonOutput");
+        const jsonText = jsonOutputDiv.textContent;
+
+        const tempInput = document.createElement("textarea");
+        tempInput.value = jsonText;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+
+        alert("JSON copied to clipboard!");
+    }
+</script>
+
+</body>
+</html>
